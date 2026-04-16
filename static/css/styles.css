@@ -27,3 +27,13 @@ th, td {
   padding: 8px;
   text-align: left;
 }
+
+.overdue {
+  color: red;
+  font-weight: bold;
+}
+
+.due-soon {
+  color: orange;
+  font-weight: bold;
+}

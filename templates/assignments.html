@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Assignments</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+  <h1>Your Assignments</h1>
+
+  <table id="assignmentsTable">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Course</th>
+        <th>Title</th>
+        <th>Due Date</th>
+        <th>Status</th>
+        <th>Difficulty</th>
+        <th>Hours</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    fetch('http://127.0.0.1:5000/assignments')
+      .then(res => res.json())
+      .then(data => {
+        const tbody = document.querySelector('#assignmentsTable tbody');
+
+        data.forEach(a => {
+          const row = document.createElement('tr');
+
+          // Color-code due dates
+          const dueDate = new Date(a[3]);
+          const today = new Date();
+          let dueClass = "";
+
+          if (dueDate < today) {
+            dueClass = "overdue";
+          } else if ((dueDate - today) / (1000 * 60 * 60 * 24) <= 3) {
+            dueClass = "due-soon";
+          }
+
+          row.innerHTML = `
+            <td>${a[0]}</td>
+            <td>${a[1]}</td>
+            <td>${a[2]}</td>
+            <td class="${dueClass}">${a[3]}</td>
+            <td>${a[4]}</td>
+            <td>${a[5]}</td>
+            <td>${a[6]}</td>
+          `;
+
+          tbody.appendChild(row);
+        });
+      });
+  </script>
+</body>
+</html>
