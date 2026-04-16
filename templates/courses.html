@@ -6,11 +6,12 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
-  <h1>Courses</h1>
+  <h1>Your Courses</h1>
+
   <table id="coursesTable">
     <thead>
       <tr>
-        <th>Course ID</th>
+        <th>ID</th>
         <th>Title</th>
         <th>Instructor</th>
         <th>Term</th>
@@ -21,7 +22,7 @@
 
   <script>
     fetch('http://127.0.0.1:5000/courses')
-      .then(response => response.json())
+      .then(res => res.json())
       .then(data => {
         const tbody = document.querySelector('#coursesTable tbody');
         data.forEach(course => {
