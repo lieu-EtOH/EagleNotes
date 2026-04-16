@@ -353,6 +353,28 @@ def remove_tag_from_assignment(assignment_id, tag_id):
     conn.close()
     return jsonify({'message': 'Tag removed from assignment'})
 
+# Frontend Routes
+from flask import render_template
+
+@app.route('/')
+def index_page():
+    return render_template('index.html')
+
+@app.route('/courses-page')
+def courses_page():
+    return render_template('courses.html')
+
+@app.route('/assignments-page')
+def assignments_page():
+    return render_template('assignments.html')
+
+@app.route('/materials-page')
+def materials_page():
+    return render_template('materials.html')
+
+@app.route('/tags-page')
+def tags_page():
+    return render_template('tags.html')
 
 # Launch the Flask app
 if __name__ == '__main__':
