@@ -43,7 +43,7 @@ def add_user():
     conn.close()
     return jsonify({'userId': user_id}), 201
 
-## Course Endpoints
+# Course Endpoints
 @app.route('/courses', methods=['GET'])
 def get_courses():
     conn = get_db_connection()
@@ -93,5 +93,114 @@ def delete_course(course_id):
     conn.close()
     return jsonify({'message': 'Course deleted'})
 
+# Assignment Endpoints
+@app.route('/assignments', methods=['GET'])
+def get_assignments():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('SELECT assignmentId, courseId, title, description, dueDate, status, difficulty, estimatedHours FROM "Assignment";')
+    assignments = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify(assignments)
+
+@app.route('/assignments', methods=['POST'])
+def add_assignment():
+    data = request.get_json()
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        '''
+        INSERT INTO "Assignment" 
+        (courseId, title, description, dueDate, status, difficulty, estimatedHours)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        RETURNING assignmentId;
+        ''',
+        (
+            data['courseId'],
+            data['title'],
+            data.get('description'),
+            data.get('dueDate'),
+            data.get('status'),
+            data.get('difficulty'),
+            data.get('estimatedHours')
+        )
+    )
+    assignment_id = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'assignmentId': assignment_id}), 201
+
+@app.route('/assignments/<int:assignment_id>', methods=['PUT'])
+def update_assignment(assignment_id):
+    data = request.get_json()
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        '''
+        UPDATE "Assignment"
+        SET title=%s, description=%s, dueDate=%s, status=%s, difficulty=%s, estimatedHours=%s
+        WHERE assignmentId=%s;
+        ''',
+        (
+            data['title'],
+            data.get('description'),
+            data.get('dueDate'),
+            data.get('status'),
+            data.get('difficulty'),
+            data.get('estimatedHours'),
+            assignment_id
+        )
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'message': 'Assignment updated'})
+
+@app.route('/assignments/<int:assignment_id>', methods=['DELETE'])
+def delete_assignment(assignment_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('DELETE FROM "Assignment" WHERE assignmentId=%s;', (assignment_id,))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'message': 'Assignment deleted'})
+
+# Get assignments for a specific course
+@app.route('/courses/<int:course_id>/assignments', methods=['GET'])
+def get_assignments_for_course(course_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        'SELECT assignmentId, title, dueDate, status, difficulty FROM "Assignment" WHERE courseId=%s;',
+        (course_id,)
+    )
+    assignments = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify(assignments)
+
+# Get assignments due within the next 7 days
+@app.route('/assignments/due-soon', methods=['GET'])
+def get_due_soon():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        '''
+        SELECT assignmentId, title, dueDate 
+        FROM "Assignment"
+        WHERE dueDate BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days';
+        '''
+    )
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify(rows)
+
+
+
+# Launch the Flask app
 if __name__ == '__main__':
     app.run(debug=True)
