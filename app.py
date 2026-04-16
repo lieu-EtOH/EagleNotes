@@ -199,6 +199,159 @@ def get_due_soon():
     conn.close()
     return jsonify(rows)
 
+# Materials Endpoints
+@app.route('/materials', methods=['GET'])
+def get_materials():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('SELECT materialId, courseId, title, type, filepath FROM "Material";')
+    materials = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify(materials)
+
+@app.route('/materials', methods=['POST'])
+def add_material():
+    data = request.get_json()
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        '''
+        INSERT INTO "Material" (courseId, title, type, filepath)
+        VALUES (%s, %s, %s, %s)
+        RETURNING materialId;
+        ''',
+        (
+            data['courseId'],
+            data['title'],
+            data.get('type'),
+            data.get('filepath')
+        )
+    )
+    material_id = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'materialId': material_id}), 201
+
+@app.route('/materials/<int:material_id>', methods=['PUT'])
+def update_material(material_id):
+    data = request.get_json()
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        '''
+        UPDATE "Material"
+        SET title=%s, type=%s, filepath=%s
+        WHERE materialId=%s;
+        ''',
+        (
+            data['title'],
+            data.get('type'),
+            data.get('filepath'),
+            material_id
+        )
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'message': 'Material updated'})
+
+@app.route('/materials/<int:material_id>', methods=['DELETE'])
+def delete_material(material_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('DELETE FROM "Material" WHERE materialId=%s;', (material_id,))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'message': 'Material deleted'})
+
+#Tags Endpoints
+@app.route('/tags', methods=['GET'])
+def get_tags():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('SELECT tagId, name FROM "Tag";')
+    tags = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify(tags)
+
+@app.route('/tags', methods=['POST'])
+def add_tag():
+    data = request.get_json()
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        'INSERT INTO "Tag" (name) VALUES (%s) RETURNING tagId;',
+        (data['name'],)
+    )
+    tag_id = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'tagId': tag_id}), 201
+
+@app.route('/tags/<int:tag_id>', methods=['DELETE'])
+def delete_tag(tag_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('DELETE FROM "Tag" WHERE tagId=%s;', (tag_id,))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'message': 'Tag deleted'})
+
+#Join table between tags and assignments
+@app.route('/assignments/<int:assignment_id>/tags', methods=['POST'])
+def add_tag_to_assignment(assignment_id):
+    data = request.get_json()
+    tag_id = data['tagId']
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        'INSERT INTO "AssignmentTag" (assignmentId, tagId) VALUES (%s, %s);',
+        (assignment_id, tag_id)
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'message': 'Tag added to assignment'}), 201
+
+#Get tags for a specific assignment
+@app.route('/assignments/<int:assignment_id>/tags', methods=['GET'])
+def get_tags_for_assignment(assignment_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        '''
+        SELECT t.tagId, t.name
+        FROM "Tag" t
+        JOIN "AssignmentTag" at ON t.tagId = at.tagId
+        WHERE at.assignmentId = %s;
+        ''',
+        (assignment_id,)
+    )
+    tags = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify(tags)
+
+#Remove a tag from an assignment
+@app.route('/assignments/<int:assignment_id>/tags/<int:tag_id>', methods=['DELETE'])
+def remove_tag_from_assignment(assignment_id, tag_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        'DELETE FROM "AssignmentTag" WHERE assignmentId=%s AND tagId=%s;',
+        (assignment_id, tag_id)
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'message': 'Tag removed from assignment'})
 
 
 # Launch the Flask app
