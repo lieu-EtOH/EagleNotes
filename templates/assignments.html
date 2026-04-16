@@ -24,38 +24,44 @@
   </table>
 
   <script>
-    fetch('http://127.0.0.1:5000/assignments')
-      .then(res => res.json())
-      .then(data => {
-        const tbody = document.querySelector('#assignmentsTable tbody');
+  fetch('http://127.0.0.1:5000/assignments')
+    .then(res => res.json())
+    .then(data => {
+      const tbody = document.querySelector('#assignmentsTable tbody');
 
-        data.forEach(a => {
-          const row = document.createElement('tr');
+      data.forEach(a => {
+        const row = document.createElement('tr');
 
-          // Color-code due dates
-          const dueDate = new Date(a[3]);
-          const today = new Date();
-          let dueClass = "";
+        // a[4] = dueDate
+        const dueDate = new Date(a[4]);
+        const today = new Date();
+        let dueClass = "";
 
-          if (dueDate < today) {
-            dueClass = "overdue";
-          } else if ((dueDate - today) / (1000 * 60 * 60 * 24) <= 3) {
-            dueClass = "due-soon";
-          }
+        if (a[4] && dueDate < today) {
+          dueClass = "overdue";
+        } else if (a[4] && (dueDate - today) / (1000 * 60 * 60 * 24) <= 3) {
+          dueClass = "due-soon";
+        }
 
-          row.innerHTML = `
-            <td>${a[0]}</td>
-            <td>${a[1]}</td>
-            <td>${a[2]}</td>
-            <td class="${dueClass}">${a[3]}</td>
-            <td>${a[4]}</td>
-            <td>${a[5]}</td>
-            <td>${a[6]}</td>
-          `;
+        row.innerHTML = `
+          <td>${a[0]}</td>   <!-- assignmentId -->
+          <td>${a[1]}</td>   <!-- courseId -->
+          <td>${a[2]}</td>   <!-- title -->
+          <td>${a[4] || ""}</td>   <!-- dueDate -->
+          <td>${a[5] || ""}</td>   <!-- status -->
+          <td>${a[6] || ""}</td>   <!-- difficulty -->
+          <td>${a[7] || ""}</td>   <!-- estimatedHours -->
+        `;
 
-          tbody.appendChild(row);
-        });
+        // apply due date color class
+        if (dueClass) {
+          row.children[3].classList.add(dueClass);
+        }
+
+        tbody.appendChild(row);
       });
-  </script>
+    });
+</script>
+
 </body>
 </html>
