@@ -36,3 +36,11 @@ def add_user():
         'INSERT INTO "User" (username, email, passwordHash) VALUES (%s, %s, %s) RETURNING userId;',
         (data['username'], data['email'], data['passwordHash'])
     )
+    user_id = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'userId': user_id}), 201
+
+if __name__ == '__main__':
+    app.run(debug=True)
