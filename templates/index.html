@@ -1,25 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Course Tracker App</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-</head>
-<body>
-  <header>
-    <h1>Course Tracker</h1>
-    <nav>
-      <a href="{{ url_for('courses_page') }}">Courses</a>
-      <a href="{{ url_for('assignments_page') }}">Assignments</a>
-      <a href="{{ url_for('materials_page') }}">Materials</a>
-      <a href="{{ url_for('tags_page') }}">Tags</a>
-    </nav>
-  </header>
+{% extends "base.html" %}
 
-  <main>
-    <h2>Welcome, Ethan!</h2>
-    <p>Select a section above to manage your data.</p>
-  </main>
-</body>
-</html>
+{% block title %}Home{% endblock %}
+
+{% block content %}
+  <h2>Welcome, Ethan!</h2>
+  <p>Select a section above to manage your data.</p>
+{% endblock %}

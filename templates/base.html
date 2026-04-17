@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+
+<body>
+
+  <!-- Persistent Header -->
+  <header style="background:#004080; padding:15px; color:white;">
+    <h1 style="margin:0;">Eagle Share</h1>
+    <nav style="margin-top:10px;">
+      <a href="{{ url_for('index_page') }}" style="color:white; margin-right:15px;">Home</a>
+      <a href="{{ url_for('courses_page') }}" style="color:white; margin-right:15px;">Courses</a>
+      <a href="{{ url_for('assignments_page') }}" style="color:white; margin-right:15px;">Assignments</a>
+      <a href="{{ url_for('materials_page') }}" style="color:white; margin-right:15px;">Materials</a>
+      <a href="{{ url_for('tags_page') }}" style="color:white;">Tags</a>
+    </nav>
+  </header>
+
+  <!-- Page Content -->
+  <main style="padding:20px;">
+    {% block content %}
+    {% endblock %}
+  </main>
+
+</body>
+</html>

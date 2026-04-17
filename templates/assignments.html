@@ -1,67 +1,575 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Assignments</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-</head>
-<body>
-  <h1>Your Assignments</h1>
+{% extends "base.html" %}
 
-  <table id="assignmentsTable">
+{% block title %}Assignments{% endblock %}
+
+{% block content %}
+<h2>Your Assignments</h2>
+
+<div id="filterBar" style="margin-bottom: 12px; display: flex; gap: 10px; align-items: center;">
+    <div id="statusFilter" style="display:flex; gap:6px;">
+        <div class="statusToggle" data-status="Not Started">Not Started</div>
+        <div class="statusToggle" data-status="In Progress">In Progress</div>
+        <div class="statusToggle" data-status="Completed">Completed</div>
+    </div>
+
+    <select id="filterCourse">
+        <option value="">All Courses</option>
+    </select>
+
+    <select id="filterDifficulty">
+        <option value="">All Difficulty</option>
+        <option>1</option>
+        <option>2</option>
+        <option>3</option>
+        <option>4</option>
+        <option>5</option>
+    </select>
+
+    <select id="filterDue">
+        <option value="">All Dates</option>
+        <option value="overdue">Overdue</option>
+        <option value="soon">Due Soon (3 days)</option>
+    </select>
+
+    <select id="sortBy">
+        <option value="">Sort By…</option>
+        <option value="dueDate">Due Date</option>
+        <option value="difficulty">Difficulty</option>
+        <option value="hours">Hours</option>
+        <option value="course">Course</option>
+        <option value="status">Status</option>
+    </select>
+
+</div>
+
+
+<table id="assignmentsTable">
     <thead>
-      <tr>
-        <th>ID</th>
-        <th>Course</th>
-        <th>Title</th>
-        <th>Due Date</th>
-        <th>Status</th>
-        <th>Difficulty</th>
-        <th>Hours</th>
-      </tr>
+        <tr>
+            <th class="hidden">ID</th>
+            <th>Course</th>
+            <th>Title</th>
+            <th>Description</th>
+            <th>Due Date</th>
+            <th>Status</th>
+            <th>Difficulty</th>
+            <th>Hours</th>
+            <th class="delete-col"></th>
+        </tr>
     </thead>
     <tbody></tbody>
-  </table>
+</table>
 
-  <script>
-  fetch('http://127.0.0.1:5000/assignments')
-    .then(res => res.json())
-    .then(data => {
-      const tbody = document.querySelector('#assignmentsTable tbody');
+<button id="addAssignmentBtn" style="margin-top:10px;">+ Add Assignment</button>
 
-      data.forEach(a => {
+<script>
+    let allAssignments = []; // store all assignments for filtering/sorting
+    let courses = []; // store all courses for dropdown
+    const tableBody = document.querySelector('#assignmentsTable tbody');
+    const addBtn = document.getElementById('addAssignmentBtn');
+    const STATUS_OPTIONS = ["Not Started", "In Progress", "Completed"];
+    const DIFFICULTY_OPTIONS = ["1", "2", "3", "4", "5"];
+    const HOURS_OPTIONS = ["< 1", "1 - 2", "2+"];
+
+
+    // Load courses first
+    function loadCourses() {
+        return fetch('http://127.0.0.1:5000/courses')
+            .then(res => res.json())
+            .then(data => {
+                courses = data.map(c => ({
+                    id: c[0],
+                    title: c[2]
+                }));
+                const courseFilter = document.getElementById('filterCourse');
+                courseFilter.innerHTML = `<option value="">All Courses</option>` +
+                    courses.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+
+            });
+    }
+
+    // Load assignments
+    function loadAssignments() {
+        fetch('http://127.0.0.1:5000/assignments')
+            .then(res => res.json())
+            .then(data => {
+                allAssignments = data;   // store raw data
+                applyFiltersAndSort();   // render filtered/sorted
+            });
+    }
+
+    // Apply filters and sorting to allAssignments, then render
+    function applyFiltersAndSort() {
+        let filtered = [...allAssignments];
+
+        // COURSE FILTER
+        const courseFilter = document.getElementById('filterCourse').value;
+        if (courseFilter) {
+            filtered = filtered.filter(a => String(a[1]) === courseFilter);
+        }
+
+        // STATUS FILTER
+        const activeStatuses = Array.from(
+            document.querySelectorAll('.statusToggle.active')
+        ).map(btn => btn.dataset.status);
+
+        if (activeStatuses.length > 0) {
+            filtered = filtered.filter(a => activeStatuses.includes(a[6]));
+        }
+
+
+
+        // DIFFICULTY FILTER
+        const diffFilter = document.getElementById('filterDifficulty').value;
+        if (diffFilter) {
+            filtered = filtered.filter(a => String(a[7]) === diffFilter);
+        }
+
+        // DUE DATE FILTER
+        const dueFilter = document.getElementById('filterDue').value;
+        if (dueFilter) {
+            const today = new Date();
+            filtered = filtered.filter(a => {
+                const due = new Date(a[5]);
+                if (dueFilter === "overdue") return due < today;
+                if (dueFilter === "soon") return (due - today) / (1000 * 60 * 60 * 24) <= 3;
+            });
+        }
+
+        // SORTING
+        const sortBy = document.getElementById('sortBy').value;
+        if (sortBy) {
+            filtered.sort((a, b) => {
+                switch (sortBy) {
+                    case "dueDate": return new Date(a[5]) - new Date(b[5]);
+                    case "difficulty": return a[7] - b[7];
+                    case "hours": return a[8] - b[8];
+                    case "course": return a[2].localeCompare(b[2]);
+                    case "status": return a[6].localeCompare(b[6]);
+                }
+            });
+        }
+
+        // RENDER
+        tableBody.innerHTML = "";
+        filtered.forEach(a => createRow(a));
+    }
+
+    function statusColor(status) {
+        switch (status) {
+            case "Not Started": return "#b30000";   // red
+            case "In Progress": return "#e68a00";   // orange
+            case "Completed": return "#2e8b57";   // green
+            default: return "#cccccc";
+        }
+    }
+
+    function hoursToFloat(label) {
+        switch (label) {
+            case "< 1": return 0.5;
+            case "1 - 2": return 1.5;
+            case "2+": return 2.5;
+            default: return null;
+        }
+    }
+
+    function hoursLabelFromValue(value) {
+        if (value === 0.5 || value === '0.5') return "< 1";
+        if (value === 1.5 || value === '1.5') return "1 - 2";
+        if (value === 2.5 || value === '2.5') return "2+";
+        return '';
+    }
+
+    function formatDateForInput(value) {
+        if (value === undefined || value === null) return '';
+        const dateString = String(value).trim();
+        if (!dateString) return '';
+        const isoDateMatch = dateString.match(/^(\d{4}-\d{2}-\d{2})$/);
+        if (isoDateMatch) return isoDateMatch[1];
+        const splitDate = dateString.split(/[T ]/)[0];
+        if (/^\d{4}-\d{2}-\d{2}$/.test(splitDate)) return splitDate;
+        const parsed = new Date(dateString);
+        if (!isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
+        return '';
+    }
+
+    function determineDueDateValue(rawValue, currentValue = '') {
+        if (typeof currentValue === 'string' && currentValue.trim()) {
+            return currentValue.trim();
+        }
+        return formatDateForInput(rawValue);
+    }
+
+    // Create editable row
+    function createRow(a) {
         const row = document.createElement('tr');
 
-        // a[4] = dueDate
-        const dueDate = new Date(a[4]);
-        const today = new Date();
-        let dueClass = "";
+        const isNew = !a[0];
+        const assignmentId = a[0] || '';
+        const courseId = a[1] || '';
+        const courseTitle = a[2] || '';
+        const dueDateValue = determineDueDateValue(a[5]);
+        const selectedHoursLabel = hoursLabelFromValue(a[8]) || '1 - 2';
+        const titleValue = a[3] || (isNew ? '' : '');
+        const descriptionValue = a[4] || '';
+        const statusValue = a[6] || 'Not Started';
+        const difficultyValue = a[7] || '1';
 
-        if (a[4] && dueDate < today) {
-          dueClass = "overdue";
-        } else if (a[4] && (dueDate - today) / (1000 * 60 * 60 * 24) <= 3) {
-          dueClass = "due-soon";
-        }
+        // Build course dropdown HTML
+        let courseOptions = courses.map(c =>
+            `<option value="${c.id}" ${String(c.id) === String(courseId) ? 'selected' : ''}>${c.title}</option>`
+        ).join('');
 
         row.innerHTML = `
-          <td>${a[0]}</td>   <!-- assignmentId -->
-          <td>${a[1]}</td>   <!-- courseId -->
-          <td>${a[2]}</td>   <!-- title -->
-          <td>${a[4] || ""}</td>   <!-- dueDate -->
-          <td>${a[5] || ""}</td>   <!-- status -->
-          <td>${a[6] || ""}</td>   <!-- difficulty -->
-          <td>${a[7] || ""}</td>   <!-- estimatedHours -->
-        `;
+    <td class="hidden">${assignmentId}</td>
 
-        // apply due date color class
-        if (dueClass) {
-          row.children[3].classList.add(dueClass);
+    <td>
+      <select class="courseSelect">
+        ${courseOptions}
+      </select>
+    </td>
+
+    <td contenteditable="true">${titleValue}</td>
+    <td contenteditable="true">${descriptionValue}</td>
+    <td>
+        <input type="date" class="dueDateInput" value="${dueDateValue}">
+    </td>
+    <td>
+        <select class="statusSelect" style="background-color:${statusColor(statusValue)}; color:white;">
+             ${STATUS_OPTIONS.map(s => `<option value="${s}" ${s === statusValue ? 'selected' : ''}>${s}</option>`).join('')}
+        </select>
+    </td>
+
+    <td>
+        <select class="difficultySelect">
+            ${DIFFICULTY_OPTIONS.map(d => `<option value="${d}" ${d === difficultyValue ? 'selected' : ''}>${d}</option>`).join('')}
+        </select>
+    </td>
+
+    <td>
+        <select class="hoursSelect">
+            ${HOURS_OPTIONS.map(h => `<option value="${h}" ${h === selectedHoursLabel ? 'selected' : ''}>${h}</option>`).join('')}
+        </select>
+    </td>
+
+    <td class="tagsCell">
+        <div class="tagContainer">
+            ${(a.tags || []).map(t => `<span class="tagBubble">${t}</span>`).join('')}
+        </div>
+        <button class="addTagBtn">+</button>
+    </td>
+
+    <td class="delete-cell">
+    <button class="deleteBtn">×</button>
+    </td>
+  `;
+
+        // Auto-save on blur for text fields
+        row.querySelectorAll('[contenteditable="true"]').forEach(cell => {
+            cell.addEventListener('blur', () => saveRow(row));
+        });
+
+        row.querySelector('.statusSelect').addEventListener('change', () => saveRow(row));
+        row.querySelector('.difficultySelect').addEventListener('change', () => saveRow(row));
+        row.querySelector('.hoursSelect').addEventListener('change', () => saveRow(row));
+        row.querySelector('.dueDateInput').addEventListener('change', () => saveRow(row));
+
+        // Change background color immediately on status change
+        row.querySelector('.statusSelect').addEventListener('change', e => {
+            e.target.style.backgroundColor = statusColor(e.target.value);
+            saveRow(row);
+        });
+
+        // Auto-save on course dropdown change
+        row.querySelector('.courseSelect').addEventListener('change', () => saveRow(row));
+
+        // Delete button
+        row.querySelector('.deleteBtn').addEventListener('click', () => {
+            const currentId = row.querySelector('td.hidden').textContent;
+            if (!currentId) return;
+
+            fetch(`http://127.0.0.1:5000/assignments/${currentId}`, { method: 'DELETE' })
+                .then(res => {
+                    if (!res.ok) throw new Error('Delete failed');
+                    return res.json();
+                })
+                .then(() => {
+                    row.remove(); // Remove the row immediately
+                })
+                .catch(err => {
+                    console.error('Delete failed:', err);
+                    alert('Failed to delete assignment. Please try again.');
+                });
+        });
+
+        row.querySelector('.addTagBtn').addEventListener('click', () => {
+            openTagSelector(row, assignmentId);
+        });
+
+
+        tableBody.appendChild(row);
+
+        if (isNew) {
+            saveRow(row);
+        }
+    }
+
+    // Save row (auto-save)
+    function saveRow(row) {
+        const cells = row.querySelectorAll('td');
+        const id = cells[0].textContent;
+
+        const payload = {
+            courseId: row.querySelector('.courseSelect').value,
+            title: cells[2].textContent.trim(),
+            description: cells[3].textContent.trim(),
+            dueDate: row.querySelector('.dueDateInput').value,
+            status: row.querySelector('.statusSelect').value,
+            difficulty: row.querySelector('.difficultySelect').value,
+            estimatedHours: hoursToFloat(row.querySelector('.hoursSelect').value)
+        };
+
+        // For new assignments, set defaults
+        if (!id) {
+            payload.courseId = payload.courseId || 1;
+            payload.title = payload.title || '';
+            payload.status = payload.status || '';
+            payload.difficulty = payload.difficulty || '1';
+            payload.estimatedHours = payload.estimatedHours || 1.0;
         }
 
-        tbody.appendChild(row);
-      });
+        const method = id ? 'PUT' : 'POST';
+        const url = id
+            ? `http://127.0.0.1:5000/assignments/${id}`
+            : 'http://127.0.0.1:5000/assignments';
+
+        fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+            .then(res => {
+                if (!res.ok) throw new Error('Save failed');
+                return res.json();
+            })
+            .then(data => {
+                const idCell = row.querySelector('td');
+                if (!id && data.assignmentId) {
+                    idCell.textContent = data.assignmentId;
+                }
+
+                const dueDateInput = row.querySelector('.dueDateInput');
+                dueDateInput.value = determineDueDateValue(payload.dueDate, dueDateInput.value);
+            })
+            .catch(err => {
+                console.error('Save failed:', err);
+                alert('Failed to save assignment. Please try again.');
+            });
+    }
+    function openTagSelector(row, assignmentId) {
+        fetch('http://127.0.0.1:5000/tags')
+            .then(res => res.json())
+            .then(tags => {
+                const menu = document.createElement('div');
+                menu.className = 'tagMenu';
+
+                menu.innerHTML = tags.map(t =>
+                    `<div class="tagOption" data-id="${t[0]}">${t[1]}</div>`
+                ).join('');
+
+                document.body.appendChild(menu);
+
+                const rect = row.querySelector('.addTagBtn').getBoundingClientRect();
+                menu.style.left = rect.left + 'px';
+                menu.style.top = rect.bottom + 'px';
+
+                menu.querySelectorAll('.tagOption').forEach(opt => {
+                    opt.addEventListener('click', () => {
+                        const tagId = opt.dataset.id;
+
+                        fetch(`http://127.0.0.1:5000/assignments/${assignmentId}/tags`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ tagId })
+                        })
+                            .then(() => {
+                                menu.remove();
+                                loadAssignments();
+                            });
+                    });
+                });
+
+                document.addEventListener('click', () => menu.remove(), { once: true });
+            });
+    }
+
+    // Add new blank row
+    addBtn.addEventListener('click', () => {
+        createRow(['', '', '', '', '', '', '', '', '']);
     });
+
+    // Set up filter/sort listeners
+    document.getElementById('filterCourse').addEventListener('change', applyFiltersAndSort);
+    document.querySelectorAll('.statusToggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+            btn.classList.toggle('active');
+            applyFiltersAndSort();
+        });
+    });
+
+    document.getElementById('filterDifficulty').addEventListener('change', applyFiltersAndSort);
+    document.getElementById('filterDue').addEventListener('change', applyFiltersAndSort);
+    document.getElementById('sortBy').addEventListener('change', applyFiltersAndSort);
+
+    // Load everything
+    loadCourses().then(loadAssignments);
 </script>
 
-</body>
-</html>
+<style>
+    .hidden {
+        display: none;
+    }
+
+    table,
+    th,
+    td {
+        border: 1px solid #ccc;
+        border-collapse: collapse;
+    }
+
+    th,
+    td {
+        padding: 8px;
+    }
+
+    td[contenteditable="true"] {
+        background-color: #fdfdfd;
+    }
+
+    td[contenteditable="true"]:focus {
+        outline: 2px solid #004080;
+        background-color: #eef5ff;
+    }
+
+    select.courseSelect {
+        width: 100%;
+        padding: 4px;
+        border: 1px solid #ccc;
+        background: #fff;
+    }
+
+    .delete-col {
+        width: 30px;
+        border-left: none;
+        border-right: none;
+    }
+
+    .delete-cell {
+        text-align: center;
+        border-left: none;
+        border-right: none;
+    }
+
+    .deleteBtn {
+        cursor: pointer;
+        border: none;
+        background: none;
+        font-size: 1.3em;
+        color: #b30000;
+        font-weight: bold;
+    }
+
+    .deleteBtn:hover {
+        color: #ff0000;
+    }
+
+    select.statusSelect,
+    select.difficultySelect,
+    select.hoursSelect,
+    select.courseSelect {
+        width: 100%;
+        padding: 4px;
+        border: 1px solid #ccc;
+        background: #fff;
+    }
+
+    .tagContainer {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .tagBubble {
+        background-color: #004080;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-size: 0.8em;
+    }
+
+    .addTagBtn {
+        border: none;
+        background: #ddd;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        font-weight: bold;
+        margin-left: 4px;
+    }
+
+    .addTagBtn:hover {
+        background: #004080;
+        color: white;
+    }
+
+    .tagMenu {
+        position: absolute;
+        background: white;
+        border: 1px solid #ccc;
+        padding: 6px;
+        border-radius: 6px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        z-index: 999;
+    }
+
+    .tagOption {
+        padding: 4px 8px;
+        cursor: pointer;
+    }
+
+    .tagOption:hover {
+        background: #eef5ff;
+    }
+
+    #filterStatus {
+        min-width: 140px;
+        padding: 4px;
+    }
+
+    .statusToggle {
+        padding: 4px 10px;
+        border: 1px solid #ccc;
+        border-radius: 12px;
+        cursor: pointer;
+        user-select: none;
+        background: #f7f7f7;
+        font-size: 0.9em;
+    }
+
+    .statusToggle.active {
+        background: #004080;
+        color: white;
+        border-color: #004080;
+    }
+
+    .statusToggle:hover {
+        background: #e0e0e0;
+    }
+
+    #statusFilter {
+        margin-right: 12px;
+    }
+</style>
+
+{% endblock %}

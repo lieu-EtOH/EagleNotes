@@ -61,7 +61,7 @@ def add_course():
     cur = conn.cursor()
     cur.execute(
         'INSERT INTO "Course" (userId, title, instructor, term) VALUES (%s, %s, %s, %s) RETURNING courseId;',
-        (data['userId'], data['title'], data['instructor'], data['term'])
+        (data.get('userId', 1), data['title'], data['instructor'], data['term'])  # Default userId to 1 if not provided
     )
     course_id = cur.fetchone()[0]
     conn.commit()
@@ -98,11 +98,29 @@ def delete_course(course_id):
 def get_assignments():
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute('SELECT assignmentId, courseId, title, description, dueDate, status, difficulty, estimatedHours FROM "Assignment";')
+    cur.execute('''
+        SELECT 
+    a.assignmentId,
+    a.courseId,
+    c.title AS courseTitle,
+    a.title,
+    a.description,
+    a.dueDate,
+    a.status,
+    a.difficulty,
+    a.estimatedHours,
+    COALESCE(array_agg(t.name) FILTER (WHERE t.name IS NOT NULL), '{}') AS tags
+    FROM "Assignment" a
+    JOIN "Course" c ON a.courseId = c.courseId
+    LEFT JOIN "AssignmentTag" at ON a.assignmentId = at.assignmentId
+    LEFT JOIN "Tag" t ON at.tagId = t.tagId
+    GROUP BY a.assignmentId, c.title;
+''')
     assignments = cur.fetchall()
     cur.close()
     conn.close()
     return jsonify(assignments)
+
 
 @app.route('/assignments', methods=['POST'])
 def add_assignment():
@@ -119,11 +137,11 @@ def add_assignment():
         (
             data['courseId'],
             data['title'],
-            data.get('description'),
-            data.get('dueDate'),
-            data.get('status'),
-            data.get('difficulty'),
-            data.get('estimatedHours')
+            data.get('description') or None,
+            data.get('dueDate') or None,
+            data.get('status') or None,
+            data.get('difficulty') or None,
+            data.get('estimatedHours') or None
         )
     )
     assignment_id = cur.fetchone()[0]
@@ -140,16 +158,17 @@ def update_assignment(assignment_id):
     cur.execute(
         '''
         UPDATE "Assignment"
-        SET title=%s, description=%s, dueDate=%s, status=%s, difficulty=%s, estimatedHours=%s
+        SET courseId=%s, title=%s, description=%s, dueDate=%s, status=%s, difficulty=%s, estimatedHours=%s
         WHERE assignmentId=%s;
         ''',
         (
+            data.get('courseId'),
             data['title'],
-            data.get('description'),
-            data.get('dueDate'),
-            data.get('status'),
-            data.get('difficulty'),
-            data.get('estimatedHours'),
+            data.get('description') or None,
+            data.get('dueDate') or None,
+            data.get('status') or None,
+            data.get('difficulty') or None,
+            data.get('estimatedHours') or None,
             assignment_id
         )
     )

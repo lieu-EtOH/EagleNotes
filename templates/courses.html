@@ -1,41 +1,174 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Courses</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-</head>
-<body>
-  <h1>Your Courses</h1>
+{% extends "base.html" %}
+{% block title %}Courses{% endblock %}
+{% block content %}
 
-  <table id="coursesTable">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Title</th>
-        <th>Instructor</th>
-        <th>Term</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+<h2>Your Courses</h2>
 
-  <script>
-    fetch('http://127.0.0.1:5000/courses')
-      .then(res => res.json())
-      .then(data => {
-        const tbody = document.querySelector('#coursesTable tbody');
-        data.forEach(course => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td>${course[0]}</td>
-            <td>${course[2]}</td>
-            <td>${course[3]}</td>
-            <td>${course[4]}</td>
-          `;
-          tbody.appendChild(row);
-        });
+<table id="coursesTable">
+  <thead>
+    <tr>
+      <th class="hidden">ID</th>
+      <th>Title</th>
+      <th>Instructor</th>
+      <th>Term</th>
+      <th class="delete-col"></th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<button id="addCourseBtn" style="margin-top:10px;">+ Add Course</button>
+
+<script>
+const tableBody = document.querySelector('#coursesTable tbody');
+const addBtn = document.getElementById('addCourseBtn');
+
+// Load existing courses
+function loadCourses() {
+  fetch('http://127.0.0.1:5000/courses')
+    .then(res => res.json())
+    .then(data => {
+      tableBody.innerHTML = '';
+      data.forEach(c => createRow(c));
+    });
+}
+
+// Create editable row
+function createRow(c) {
+  const row = document.createElement('tr');
+  const isNew = !c[0];
+  const titleValue = c[2] || (isNew ? '' : '');
+  const instructorValue = c[3] || '';
+  const termValue = c[4] || '';
+
+  row.innerHTML = `
+    <td class="hidden">${c[0] || ''}</td>
+    <td contenteditable="true">${titleValue}</td>
+    <td contenteditable="true">${instructorValue}</td>
+    <td contenteditable="true">${termValue}</td>
+
+    <!-- Invisible delete cell except for the button -->
+    <td class="delete-cell">
+      <button class="deleteBtn">×</button>
+    </td>
+  `;
+
+  // Auto-save on blur
+  row.querySelectorAll('[contenteditable="true"]').forEach(cell => {
+    cell.addEventListener('blur', () => saveRow(row));
+  });
+
+  // Delete button
+  row.querySelector('.deleteBtn').addEventListener('click', () => {
+    const id = row.querySelector('td').textContent;
+    if (!id) return;
+
+    fetch(`http://127.0.0.1:5000/courses/${id}`, { method: 'DELETE' })
+      .then(res => {
+        if (!res.ok) throw new Error('Delete failed');
+        return res.json();
+      })
+      .then(() => loadCourses())
+      .catch(err => {
+        console.error('Delete failed:', err);
+        alert('Failed to delete course. Please try again.');
       });
-  </script>
-</body>
-</html>
+  });
+
+  tableBody.appendChild(row);
+
+  if (isNew) {
+    saveRow(row);
+  }
+}
+
+// Save row (auto-save)
+function saveRow(row) {
+  const cells = row.querySelectorAll('td');
+  const id = cells[0].textContent;
+
+  const payload = {
+    title: cells[1].textContent.trim(),
+    instructor: cells[2].textContent.trim(),
+    term: cells[3].textContent.trim()
+  };
+
+  const method = id ? 'PUT' : 'POST';
+  const url = id
+    ? `http://127.0.0.1:5000/courses/${id}`
+    : 'http://127.0.0.1:5000/courses';
+
+  fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(res => {
+    if (!res.ok) throw new Error('Save failed');
+    return res.json();
+  })
+  .then(() => loadCourses())
+  .catch(err => {
+    console.error('Save failed:', err);
+    alert('Failed to save course. Please try again.');
+  });
+}
+
+// Add new blank row
+addBtn.addEventListener('click', () => {
+  createRow(['', '', '', '']);
+});
+
+loadCourses();
+</script>
+
+<style>
+  .hidden { display:none; }
+
+  /* Visible table grid */
+  table, th, td {
+    border: 1px solid #ccc;
+    border-collapse: collapse;
+  }
+
+  th, td {
+    padding: 8px;
+  }
+
+  td[contenteditable="true"] {
+    background-color: #fdfdfd;
+  }
+
+  td[contenteditable="true"]:focus {
+    outline: 2px solid #004080;
+    background-color: #eef5ff;
+  }
+
+  /* Delete column */
+  .delete-col {
+    width: 30px;
+    border-left: none;
+    border-right: none;
+  }
+
+  .delete-cell {
+    text-align: center;
+    border-left: none;
+    border-right: none;
+  }
+
+  .deleteBtn {
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-size: 1.3em;
+    color: #b30000;
+    font-weight: bold;
+  }
+
+  .deleteBtn:hover {
+    color: #ff0000;
+  }
+</style>
+
+{% endblock %}
