@@ -1,11 +1,103 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, redirect, request, render_template
+from flask_login import (
+    LoginManager,
+    UserMixin,
+    login_user,
+    logout_user,
+    login_required
+)
+from werkzeug.security import generate_password_hash, check_password_hash
+from dotenv import load_dotenv
 import psycopg2
 import os
-from dotenv import load_dotenv
 
 load_dotenv()
-
 app = Flask(__name__)
+app.secret_key = "your-very-secret-key"
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login_page'
+
+class User(UserMixin):
+    def __init__(self, userId, username, email, passwordHash):
+        self.id = userId
+        self.username = username
+        self.email = email
+        self.passwordHash = passwordHash
+
+# User loader callback for Flask-Login
+@login_manager.user_loader
+def load_user(user_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('SELECT userId, username, email, passwordHash FROM "User" WHERE userId=%s;', (user_id,))
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if row:
+        return User(*row)
+    return None        
+
+# Registration Endpoint
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    username = data['username']
+    email = data['email']
+    password = data['password']
+
+    hashed = generate_password_hash(password)
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('INSERT INTO "User" (username, email, passwordHash) VALUES (%s, %s, %s) RETURNING userId;',
+                (username, email, hashed))
+    user_id = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return jsonify({'userId': user_id, 'username': username})
+
+# Login Endpoint
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    username_or_email = data['username']
+    password = data['password']
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        'SELECT userId, username, email, passwordHash FROM "User" WHERE username=%s OR email=%s;',
+        (username_or_email, username_or_email)
+    )
+    user = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if not user:
+        return jsonify({'error': 'No account found with that username or email'}), 401
+
+    if not check_password_hash(user[3], password):
+        return jsonify({'error': 'Incorrect password'}), 401
+
+    login_user(User(*user))
+    return jsonify({'message': 'Login successful', 'userId': user[0]})
+
+# Unauthorized handler for Flask-Login
+@login_manager.unauthorized_handler
+def unauthorized():
+    return redirect('/login-page')
+
+# Logout Endpoint
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return jsonify({'message': 'Logged out'})
 
 def get_db_connection():
     conn = psycopg2.connect(
@@ -16,6 +108,31 @@ def get_db_connection():
         port=os.getenv("DB_PORT")
     )
     return conn
+
+# Registration Page Endpoint
+@app.route('/register-page')
+def register_page():
+    return render_template('register.html')
+
+# Login Page Endpoint
+@app.route('/login-page')
+def login_page():
+    return render_template('login.html')
+
+# Get user info for personal info
+@app.route('/user-info/<int:user_id>')
+@login_required
+def user_info(user_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('SELECT username, email FROM "User" WHERE userId=%s;', (user_id,))
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if row:
+        return jsonify({"username": row[0], "email": row[1]})
+    return jsonify({"error": "User not found"}), 404
 
 # User Endpoints
 @app.route('/users', methods=['GET'])
@@ -92,6 +209,28 @@ def delete_course(course_id):
     cur.close()
     conn.close()
     return jsonify({'message': 'Course deleted'})
+
+@app.route('/courses/search')
+def search_courses():
+    query = request.args.get('q', '').strip()
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    if query:
+        cur.execute("""
+            SELECT courseId, title, description, instructor
+            FROM "Course"
+            WHERE LOWER(title) LIKE LOWER(%s)
+               OR LOWER(description) LIKE LOWER(%s)
+               OR LOWER(instructor) LIKE LOWER(%s);
+        """, (f"%{query}%", f"%{query}%", f"%{query}%"))
+    else:
+        cur.execute('SELECT courseId, title, description, instructor FROM "Course";')
+
+    results = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify(results)
 
 # Assignment Endpoints
 @app.route('/assignments', methods=['GET'])
@@ -218,6 +357,39 @@ def get_due_soon():
     conn.close()
     return jsonify(rows)
 
+@app.route('/assignments/search')
+def search_assignments():
+    query = request.args.get('q', '').strip()
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    if query:
+        cur.execute("""
+            SELECT a.assignmentId, a.courseId, c.title AS courseTitle,
+                   a.title, a.description, a.dueDate, a.status,
+                   a.difficulty, a.estimatedHours
+            FROM "Assignment" a
+            JOIN "Course" c ON a.courseId = c.courseId
+            WHERE LOWER(a.title) LIKE LOWER(%s)
+               OR LOWER(a.description) LIKE LOWER(%s)
+               OR LOWER(c.title) LIKE LOWER(%s)
+            ORDER BY a.dueDate ASC;
+        """, (f"%{query}%", f"%{query}%", f"%{query}%"))
+    else:
+        cur.execute("""
+            SELECT a.assignmentId, a.courseId, c.title AS courseTitle,
+                   a.title, a.description, a.dueDate, a.status,
+                   a.difficulty, a.estimatedHours
+            FROM "Assignment" a
+            JOIN "Course" c ON a.courseId = c.courseId
+            ORDER BY a.dueDate ASC;
+        """)
+
+    results = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify(results)
+
 # Materials Endpoints
 @app.route('/materials', methods=['GET'])
 def get_materials():
@@ -286,6 +458,35 @@ def delete_material(material_id):
     conn.close()
     return jsonify({'message': 'Material deleted'})
 
+@app.route('/materials/search')
+def search_materials():
+    query = request.args.get('q', '').strip()
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    if query:
+        cur.execute("""
+            SELECT m.materialId, m.courseId, c.title AS courseTitle,
+                   m.title, m.type, m.filepath
+            FROM "Material" m
+            JOIN "Course" c ON m.courseId = c.courseId
+            WHERE LOWER(m.title) LIKE LOWER(%s)
+               OR LOWER(m.type) LIKE LOWER(%s)
+               OR LOWER(c.title) LIKE LOWER(%s);
+        """, (f"%{query}%", f"%{query}%", f"%{query}%"))
+    else:
+        cur.execute("""
+            SELECT m.materialId, m.courseId, c.title AS courseTitle,
+                   m.title, m.type, m.filepath
+            FROM "Material" m
+            JOIN "Course" c ON m.courseId = c.courseId;
+        """)
+
+    results = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify(results)
+
 #Tags Endpoints
 @app.route('/tags', methods=['GET'])
 def get_tags():
@@ -321,6 +522,23 @@ def delete_tag(tag_id):
     cur.close()
     conn.close()
     return jsonify({'message': 'Tag deleted'})
+
+@app.route('/tags/search')
+def search_tags():
+    query = request.args.get('q', '').strip()
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    if query:
+        cur.execute('SELECT tagId, name FROM "Tag" WHERE LOWER(name) LIKE LOWER(%s);',
+                    (f"%{query}%",))
+    else:
+        cur.execute('SELECT tagId, name FROM "Tag";')
+
+    results = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify(results)
 
 #Join table between tags and assignments
 @app.route('/assignments/<int:assignment_id>/tags', methods=['POST'])
@@ -376,6 +594,7 @@ def remove_tag_from_assignment(assignment_id, tag_id):
 from flask import render_template
 
 @app.route('/')
+@login_required
 def index_page():
     return render_template('index.html')
 
@@ -384,14 +603,18 @@ def courses_page():
     return render_template('courses.html')
 
 @app.route('/assignments-page')
+@login_required
 def assignments_page():
     return render_template('assignments.html')
 
+
 @app.route('/materials-page')
+@login_required
 def materials_page():
     return render_template('materials.html')
 
 @app.route('/tags-page')
+@login_required
 def tags_page():
     return render_template('tags.html')
 

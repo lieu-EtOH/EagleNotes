@@ -3,7 +3,13 @@
 {% block title %}Assignments{% endblock %}
 
 {% block content %}
-<h2>Your Assignments</h2>
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <h2>Assignments</h2>
+
+    <input id="assignmentSearch" type="text" placeholder="Search assignments..."
+        style="padding:6px 10px; width:220px; border:1px solid #ccc; border-radius:6px;" />
+</div>
+
 
 <div id="filterBar" style="margin-bottom: 12px; display: flex; gap: 10px; align-items: center;">
     <div id="statusFilter" style="display:flex; gap:6px;">
@@ -133,6 +139,22 @@
                 const due = new Date(a[5]);
                 if (dueFilter === "overdue") return due < today;
                 if (dueFilter === "soon") return (due - today) / (1000 * 60 * 60 * 24) <= 3;
+            });
+        }
+
+        // TEXT SEARCH FILTER
+        const searchTerm = document.getElementById('assignmentSearch').value.toLowerCase();
+
+        if (searchTerm) {
+            filtered = filtered.filter(a => {
+                const title = a[3]?.toLowerCase() || "";
+                const desc = a[4]?.toLowerCase() || "";
+                const course = a[2]?.toLowerCase() || "";
+                return (
+                    title.includes(searchTerm) ||
+                    desc.includes(searchTerm) ||
+                    course.includes(searchTerm)
+                );
             });
         }
 
@@ -420,6 +442,11 @@
     document.getElementById('filterDifficulty').addEventListener('change', applyFiltersAndSort);
     document.getElementById('filterDue').addEventListener('change', applyFiltersAndSort);
     document.getElementById('sortBy').addEventListener('change', applyFiltersAndSort);
+
+    // Search filter
+    document.getElementById('assignmentSearch').addEventListener('input', () => {
+        applyFiltersAndSort();
+    });
 
     // Load everything
     loadCourses().then(loadAssignments);

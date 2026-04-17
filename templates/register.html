@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Register</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #registerBox {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            width: 340px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            margin-top: 0;
+            text-align: center;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1em;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 18px;
+            background: #004080;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #003366;
+        }
+
+        #errorMsg {
+            color: #b30000;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="registerBox">
+        <h2>Create Account</h2>
+
+        <input type="text" id="username" placeholder="Username" />
+        <input type="email" id="email" placeholder="Email" />
+        <input type="password" id="password" placeholder="Password" />
+        <input type="password" id="confirmPassword" placeholder="Confirm Password" />
+
+        <button id="registerBtn">Register</button>
+
+        <div style="text-align:center; margin-top:12px;">
+            <a href="/login-page">Already have an account?</a>
+        </div>
+        
+        <div id="errorMsg">Passwords do not match</div>
+    </div>
+
+    <script>
+        document.getElementById("registerBtn").addEventListener("click", () => {
+            const username = document.getElementById("username").value.trim();
+            const email = document.getElementById("email").value.trim();
+            const password = document.getElementById("password").value.trim();
+            const confirmPassword = document.getElementById("confirmPassword").value.trim();
+
+            if (password !== confirmPassword) {
+                document.getElementById("errorMsg").innerText = "Passwords do not match";
+                document.getElementById("errorMsg").style.display = "block";
+                return;
+            }
+
+            const payload = { username, email, password };
+
+            fetch("http://127.0.0.1:5000/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.userId) {
+                        // Registration successful → redirect to login
+                        window.location.href = "/login-page";
+                    } else {
+                        document.getElementById("errorMsg").innerText = "Registration failed";
+                        document.getElementById("errorMsg").style.display = "block";
+                    }
+                });
+        });
+    </script>
+</body>
+
+</html>
