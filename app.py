@@ -16,7 +16,7 @@ import os
 load_dotenv()
 app = Flask(__name__)
 CORS(app)
-app.secret_key = "your-very-secret-key"
+app.secret_key = os.getenv("SECRET_KEY")
 
 login_manager = LoginManager()
 login_manager.init_app(app)
