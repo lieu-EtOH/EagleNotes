@@ -34,7 +34,9 @@ CREATE TABLE "Material" (
 
 CREATE TABLE "Tag" (
     tagId SERIAL PRIMARY KEY,
-    name VARCHAR(50) UNIQUE NOT NULL
+    userId INT REFERENCES "User"(userId) ON DELETE CASCADE,
+    name VARCHAR(50) NOT NULL,
+    UNIQUE(userId, name)
 );
 
 CREATE TABLE "AssignmentTag" (
