@@ -80,6 +80,11 @@
     </div>
 
     <script>
+        // Automatically choose the correct backend depending on environment
+        const API_BASE = window.location.hostname === 'localhost'
+          ? 'http://127.0.0.1:5000'
+          : 'https://eaglenotes.onrender.com';
+
         document.getElementById("registerBtn").addEventListener("click", () => {
             const username = document.getElementById("username").value.trim();
             const email = document.getElementById("email").value.trim();
@@ -94,7 +99,7 @@
 
             const payload = { username, email, password };
 
-            fetch("http://127.0.0.1:5000/register", {
+            fetch(`${API_BASE}/register`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)

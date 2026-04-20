@@ -69,6 +69,11 @@
 <button id="addAssignmentBtn" style="margin-top:10px;">+ Add Assignment</button>
 
 <script>
+    // Automatically choose the correct backend depending on environment
+    const API_BASE = window.location.hostname === 'localhost'
+      ? '${API_BASE}'
+      : 'https://eaglenotes.onrender.com';
+
     let allAssignments = []; // store all assignments for filtering/sorting
     let courses = []; // store all courses for dropdown
     const tableBody = document.querySelector('#assignmentsTable tbody');
@@ -80,7 +85,7 @@
 
     // Load courses first
     function loadCourses() {
-        return fetch('http://127.0.0.1:5000/courses')
+        return fetch(`${API_BASE}/courses`)
             .then(res => res.json())
             .then(data => {
                 courses = data.map(c => ({
@@ -96,7 +101,7 @@
 
     // Load assignments
     function loadAssignments() {
-        fetch('http://127.0.0.1:5000/assignments')
+        fetch(`${API_BASE}/assignments`)
             .then(res => res.json())
             .then(data => {
                 allAssignments = data;   // store raw data
@@ -310,7 +315,7 @@
             const currentId = row.querySelector('td.hidden').textContent;
             if (!currentId) return;
 
-            fetch(`http://127.0.0.1:5000/assignments/${currentId}`, { method: 'DELETE' })
+            fetch(`${API_BASE}/assignments/${currentId}`, { method: 'DELETE' })
                 .then(res => {
                     if (!res.ok) throw new Error('Delete failed');
                     return res.json();
@@ -362,8 +367,8 @@
 
         const method = id ? 'PUT' : 'POST';
         const url = id
-            ? `http://127.0.0.1:5000/assignments/${id}`
-            : 'http://127.0.0.1:5000/assignments';
+            ? `${API_BASE}/assignments/${id}`
+            : '${API_BASE}/assignments';
 
         fetch(url, {
             method,
@@ -389,7 +394,7 @@
             });
     }
     function openTagSelector(row, assignmentId) {
-        fetch('http://127.0.0.1:5000/tags')
+        fetch('${API_BASE}/tags')
             .then(res => res.json())
             .then(tags => {
                 const menu = document.createElement('div');
@@ -409,7 +414,7 @@
                     opt.addEventListener('click', () => {
                         const tagId = opt.dataset.id;
 
-                        fetch(`http://127.0.0.1:5000/assignments/${assignmentId}/tags`, {
+                        fetch(`${API_BASE}/assignments/${assignmentId}/tags`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ tagId })

@@ -23,9 +23,18 @@
 const tableBody = document.querySelector('#coursesTable tbody');
 const addBtn = document.getElementById('addCourseBtn');
 
+// Automatically choose the correct backend depending on environment
+const API_BASE = window.location.hostname === 'localhost'
+  ? '${API_BASE}'
+  : 'https://eaglenotes.onrender.com';
+
+// Load existing courses
+const tableBody = document.querySelector('#coursesTable tbody');
+const addBtn = document.getElementById('addCourseBtn');
+
 // Load existing courses
 function loadCourses() {
-  fetch('http://127.0.0.1:5000/courses')
+  fetch('${API_BASE}/courses')
     .then(res => res.json())
     .then(data => {
       tableBody.innerHTML = '';
@@ -63,7 +72,7 @@ function createRow(c) {
     const id = row.querySelector('td').textContent;
     if (!id) return;
 
-    fetch(`http://127.0.0.1:5000/courses/${id}`, { method: 'DELETE' })
+    fetch(`${API_BASE}/courses/${id}`, { method: 'DELETE' })
       .then(res => {
         if (!res.ok) throw new Error('Delete failed');
         return res.json();
@@ -95,8 +104,8 @@ function saveRow(row) {
 
   const method = id ? 'PUT' : 'POST';
   const url = id
-    ? `http://127.0.0.1:5000/courses/${id}`
-    : 'http://127.0.0.1:5000/courses';
+    ? `${API_BASE}/courses/${id}`
+    : '${API_BASE}/courses';
 
   fetch(url, {
     method,

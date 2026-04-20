@@ -20,12 +20,22 @@
 <button id="addMaterialBtn" style="margin-top:10px;">+ Add Material</button>
 
   <script>
+    // Automatically choose the correct backend depending on environment
+    const API_BASE = window.location.hostname === 'localhost'
+      ? '${API_BASE}'
+      : 'https://eaglenotes.onrender.com';
+
     let courses = [];
     const tableBody = document.querySelector('#materialsTable tbody');
     const addBtn = document.getElementById('addMaterialBtn');
 
     function loadCourses() {
-    return fetch('http://127.0.0.1:5000/courses')
+    let courses = [];
+    const tableBody = document.querySelector('#materialsTable tbody');
+    const addBtn = document.getElementById('addMaterialBtn');
+
+    function loadCourses() {
+    return fetch('${API_BASE}/courses')
         .then(res => res.json())
         .then(data => {
             courses = data.map(c => ({
@@ -36,7 +46,7 @@
     }
 
     function loadMaterials() {
-    fetch('http://127.0.0.1:5000/materials')
+    fetch('${API_BASE}/materials')
         .then(res => res.json())
         .then(data => {
             tableBody.innerHTML = '';
@@ -89,7 +99,7 @@
             const id = row.querySelector('td.hidden').textContent.trim();
             if (!id) return;
             
-            fetch(`http://127.0.0.1:5000/materials/${id}`, { method: 'DELETE' })
+            fetch(`${API_BASE}/materials/${id}`, { method: 'DELETE' })
             .then(() => row.remove());
         });
 
@@ -113,8 +123,8 @@
 
             const method = id ? 'PUT' : 'POST';
             const url = id
-                ? `http://127.0.0.1:5000/materials/${id}`
-                : 'http://127.0.0.1:5000/materials';
+                ? `${API_BASE}/materials/${id}`
+                : '${API_BASE}/materials';
 
             fetch(url, {
                 method,

@@ -47,13 +47,18 @@
       }
     });
 
+    // Automatically choose the correct backend depending on environment
+    const API_BASE = window.location.hostname === 'localhost'
+      ? 'http://127.0.0.1:5000'
+      : 'https://eaglenotes.onrender.com';
+
     // Load user info from localStorage
     const userId = localStorage.getItem("userId");
 
     if (!userId) {
       window.location.href = "/login-page";
     } else {
-      fetch(`/user-info/${userId}`)
+      fetch(`${API_BASE}/user-info/${userId}`)
         .then(res => res.json())
         .then(data => {
           document.getElementById("profileName").innerText = data.username;
@@ -63,7 +68,7 @@
 
     // Logout
     document.getElementById("logoutBtn").addEventListener("click", () => {
-      fetch("/logout")
+      fetch(`${API_BASE}/logout`)
         .then(() => {
           localStorage.removeItem("userId");
           window.location.href = "/login-page";

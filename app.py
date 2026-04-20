@@ -8,12 +8,14 @@ from flask_login import (
     current_user
 )
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_cors import CORS
 from dotenv import load_dotenv
 import psycopg2
 import os
 
 load_dotenv()
 app = Flask(__name__)
+CORS(app)
 app.secret_key = "your-very-secret-key"
 
 login_manager = LoginManager()
