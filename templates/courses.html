@@ -92,7 +92,7 @@
   // Save row (auto-save)
   function saveRow(row) {
     const cells = row.querySelectorAll('td');
-    const id = cells[0].textContent;
+    const id = cells[0].textContent.trim();
 
     const payload = {
       title: cells[1].textContent.trim(),
@@ -100,11 +100,11 @@
       term: cells[3].textContent.trim()
     };
 
-    const method = id ? 'PUT' : 'POST';
-    const url = id
-      ? `${API_BASE}/courses/${id}`
-      : `${API_BASE}/courses`;
-
+    const isNew = !id;
+    const method = isNew ? 'POST' : 'PUT';
+    const url = isNew
+      ? `${API_BASE}/courses`
+      : `${API_BASE}/courses/${id}`;
 
     fetch(url, {
       method,
@@ -116,12 +116,18 @@
         if (!res.ok) throw new Error('Save failed');
         return res.json();
       })
-      .then(() => loadCourses())
+      .then(data => {
+        if (isNew) {
+          // update the ID in the row WITHOUT reloading the table
+          cells[0].textContent = data.id;
+        }
+      })
       .catch(err => {
         console.error('Save failed:', err);
         alert('Failed to save course. Please try again.');
       });
   }
+
 
   // Add new blank row
   addBtn.addEventListener('click', () => {

@@ -3,28 +3,55 @@
 
 <head>
     <title>Login</title>
+
     <style>
+        @font-face {
+            font-family: 'Perpetua';
+            src: local('Perpetua'), local('Perpetua Regular');
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+            background: url('/static/img/login-bg.jpg') no-repeat center center fixed;
+            background-size: cover;
+            position: relative;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            flex-direction: column;
+        }
+
+        #loginTitle {
+            font-family: 'Perpetua', serif;
+            font-size: 100px;
+            color: rgb(222, 243, 255);
+            text-align: center;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+            text-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
         }
 
         #loginBox {
-            background: white;
+            background: rgba(255, 255, 255, 0.18);
+            backdrop-filter: blur(12px);
             padding: 30px;
-            border-radius: 10px;
+            border-radius: 12px;
             width: 320px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            position: relative;
+            transition: transform 0.15s ease-out;
+            will-change: transform;
         }
 
         h2 {
             margin-top: 0;
             text-align: center;
+            color: white;
+            font-weight: 300;
         }
 
         input {
@@ -35,11 +62,6 @@
             border: 1px solid #ccc;
             border-radius: 6px;
             font-size: 1em;
-        }
-
-        input[type="password"]::-ms-reveal,
-        input[type="password"]::-webkit-reveal {
-            display: none;
         }
 
         button {
@@ -59,27 +81,61 @@
         }
 
         #errorMsg {
-            color: #b30000;
+            color: #ffdddd;
             margin-top: 10px;
             text-align: center;
             display: none;
+        }
+
+        a {
+            color: white;
+        }
+
+        #photoCredit {
+            position: fixed;
+            bottom: 12px;
+            width: 100%;
+            text-align: center;
+            font-family: 'Perpetua', serif;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.75);
+            text-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+        }
+
+        #photoCredit a {
+            color: rgba(255, 255, 255, 0.85);
+            text-decoration: none;
+        }
+
+        #photoCredit a:hover {
+            text-decoration: underline;
+        }
+
+        .parallaxFloat {
+            transition: transform 0.15s ease-out;
+            will-change: transform;
         }
     </style>
 </head>
 
 <body>
-    <div id="loginBox">
+
+    <h1 id="loginTitle" class="parallaxFloat">Eagle Share</h1>
+
+    <div id="loginBox" class="parallaxFloat">
         <h2>Login</h2>
 
         <input type="text" id="username" placeholder="Username or Email" />
+
         <div style="position: relative; width: 100%;">
             <input type="password" id="password" placeholder="Password" />
-
-            <span id="togglePassword" aria-label="Toggle password visibility"
-                style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:1.1em; color:#555; user-select:none; z-index:2;">
+            <span id="togglePassword"
+                style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:1.1em; color:#000000; user-select:none;">
                 Show
             </span>
         </div>
+
+
 
         <button id="loginBtn">Login</button>
 
@@ -91,11 +147,11 @@
     </div>
 
     <script>
-        // Automatically choose the correct backend depending on environment
-        const API_BASE = window.location.hostname === 'localhost' ||
-            window.location.hostname === '127.0.0.1'
-            ? 'http://127.0.0.1:5000'
-            : 'https://eaglenotes.onrender.com';
+        const API_BASE =
+            window.location.hostname === 'localhost' ||
+                window.location.hostname === '127.0.0.1'
+                ? 'http://127.0.0.1:5000'
+                : 'https://eaglenotes.onrender.com';
 
         document.getElementById("loginBtn").addEventListener("click", () => {
             const payload = {
@@ -119,18 +175,17 @@
                         msg.innerText = data.error;
                         msg.style.display = "block";
                     }
-
                 });
         });
-        const togglePassword = document.getElementById("togglePassword");
-        togglePassword.addEventListener("click", () => {
+
+        document.getElementById("togglePassword").addEventListener("click", () => {
             const pass = document.getElementById("password");
             const isHidden = pass.type === "password";
             pass.type = isHidden ? "text" : "password";
             togglePassword.textContent = isHidden ? "Hide" : "Show";
         });
 
-        // Hide error message on input
+
         document.getElementById("username").addEventListener("input", () => {
             document.getElementById("errorMsg").style.display = "none";
         });
@@ -139,7 +194,37 @@
             document.getElementById("errorMsg").style.display = "none";
         });
 
+        // Parallax push-away effect
+        document.addEventListener("mousemove", (e) => {
+            const cx = window.innerWidth / 2;
+            const cy = window.innerHeight / 2;
+
+            const dx = (e.clientX - cx) / cx;  // -1 to 1
+            const dy = (e.clientY - cy) / cy;  // -1 to 1
+
+            const strength = 12; // how far elements move
+
+            document.querySelectorAll(".parallaxFloat").forEach(el => {
+                const offsetX = -dx * strength;
+                const offsetY = -dy * strength;
+                el.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+            });
+        });
     </script>
+
+    <div id="photoCredit">
+        Photo by
+        <a
+            href="https://unsplash.com/@pawel_czerwinski?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">
+            Pawel Czerwinski
+        </a>
+        on
+        <a
+            href="https://unsplash.com/photos/blue-abstract-artwork-suLgJZ1edT4?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">
+            Unsplash
+        </a>
+    </div>
+
 </body>
 
 </html>

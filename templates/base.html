@@ -5,140 +5,365 @@
   <meta charset="UTF-8">
   <title>{% block title %}{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+
+  <style>
+    /* Full-page background */
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: url("/static/img/eaglenotes-bg.jpg") no-repeat center center fixed;
+      background-size: cover;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header flush to top and full width */
+    header {
+      width: 100%;
+      padding: 20px 30px;
+      box-sizing: border-box;
+      background: rgba(0, 29, 110, 0.628);
+      backdrop-filter: blur(6px);
+      color: rgb(222, 243, 255);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    /* Navigation bar */
+    #navbar {
+      width: 100%;
+      display: flex;
+      justify-content: flex-end;
+      padding: 10px 0;
+      box-sizing: border-box;
+      background: transparent;
+    }
+
+    nav a {
+      color: white;
+      margin-right: 15px;
+      font-size: 1.1em;
+      text-decoration: none;
+    }
+
+    nav a {
+      color: white;
+      margin-right: 15px;
+      font-size: 1.1em;
+      text-decoration: none !important;
+      /* ← forces removal of default underline */
+      position: relative;
+      transition: color 0.25s ease;
+    }
+
+
+    /* Profile menu */
+    #profileMenu {
+      position: relative;
+    }
+
+    #profileIcon {
+      cursor: pointer;
+      font-size: 1.3em;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      color: #00345c;
+      transition: transform 0.15s ease, background 0.2s ease;
+    }
+
+    #profileIcon:hover {
+      transform: translateY(-2px);
+      background: rgba(255, 255, 255, 0.35);
+    }
+
+
+    #profileDropdown {
+      position: absolute;
+      right: 0;
+      top: 45px;
+      width: 240px;
+      background: rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 14px;
+      padding: 14px;
+      display: none;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+      color: white;
+      opacity: 0;
+      transform: translateY(-6px);
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      box-shadow:
+        0 8px 25px rgba(0, 0, 0, 0.25),
+        0 0 20px rgba(255, 255, 255, 0.15);
+    }
+
+    #profileDropdown.show {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .profileRow {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-size: 0.9em;
+      color: white;
+    }
+
+    .profileRow .label {
+      font-weight: bold;
+      color: #e6f3ff;
+    }
+
+    #profileDropdown hr {
+      margin: 10px 0;
+    }
+
+    #logoutBtn {
+      width: 100%;
+      padding: 8px;
+      background: #b30000;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    #logoutBtn:hover {
+      background: #800000;
+    }
+
+    /* Main content */
+    main {
+      flex: 1;
+      width: 100%;
+      padding: 30px;
+      box-sizing: border-box;
+    }
+
+    /* Attribution footer */
+    #bgCredit {
+      width: 100%;
+      text-align: center;
+      padding: 6px 0;
+      font-size: 12px;
+      color: white;
+      background: rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(4px);
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      z-index: 10;
+    }
+
+    #bgCredit a {
+      color: #d0eaff;
+      text-decoration: none;
+    }
+
+    #bgCredit a:hover {
+      text-decoration: underline;
+    }
+
+    /* Glass content container */
+    .content-wrapper {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 30px;
+      margin: 20px auto;
+      width: min(1200px, 90%);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    nav a {
+      color: white;
+      margin-right: 15px;
+      font-size: 1.1em;
+      text-decoration: none;
+      position: relative;
+      transition: color 0.25s ease;
+    }
+
+    nav a::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: -3px;
+      width: 0%;
+      height: 2px;
+      background: #d0eaff;
+      transition: width 0.25s ease;
+    }
+
+    nav a:hover {
+      color: #d0eaff;
+    }
+
+    nav a:hover::after {
+      width: 100%;
+    }
+
+    header.scrolled {
+      background: rgba(0, 64, 128, 0.55);
+      backdrop-filter: blur(10px);
+      transition: background 0.3s ease, backdrop-filter 0.3s ease;
+    }
+
+    /* Soft vignette overlay */
+    #vignetteOverlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at center,
+          rgba(0, 0, 0, 0) 40%,
+          rgba(0, 0, 0, 0.35) 100%);
+      z-index: 1;
+    }
+  </style>
 </head>
 
 <body>
+  <div id="vignetteOverlay"></div>
 
   <!-- Persistent Header -->
-  <header style="background:#004080; padding:15px; color:white;">
-    <h1 style="margin:0;">Eagle Share</h1>
+  <header>
+    <h1 style="margin:0; font-size: 70px; font-family: 'Perpetua', serif; text-shadow: 0 0 20px rgba(0, 0, 0, 0.6);">
+      Eagle Share
+    </h1>
+
     <div id="navbar">
       <div id="profileMenu">
         <div id="profileIcon">👤</div>
 
         <div id="profileDropdown">
-          <div id="profileName"></div>
-          <div id="profileEmail"></div>
+          <div class="profileRow">
+            <span class="label">User:</span>
+            <span id="profileName"></span>
+          </div>
+
+          <div class="profileRow">
+            <span class="label">Email:</span>
+            <span id="profileEmail"></span>
+          </div>
+
           <hr>
           <button id="logoutBtn">Logout</button>
         </div>
       </div>
     </div>
-    <nav style="margin-top:10px;">
-      <a href="{{ url_for('index_page') }}" style="color:white; margin-right:15px;">Home</a>
-      <a href="{{ url_for('courses_page') }}" style="color:white; margin-right:15px;">Courses</a>
-      <a href="{{ url_for('assignments_page') }}" style="color:white; margin-right:15px;">Assignments</a>
-      <a href="{{ url_for('materials_page') }}" style="color:white; margin-right:15px;">Materials</a>
-      <a href="{{ url_for('tags_page') }}" style="color:white;">Tags</a>
+
+    <nav>
+      <a href="{{ url_for('index_page') }}">Home</a>
+      <a href="{{ url_for('courses_page') }}">Courses</a>
+      <a href="{{ url_for('assignments_page') }}">Assignments</a>
+      <a href="{{ url_for('materials_page') }}">Materials</a>
+      <a href="{{ url_for('tags_page') }}">Tags</a>
     </nav>
   </header>
 
+  <!-- JS -->
   <script>
-  // Toggle dropdown
-  document.getElementById("profileIcon").addEventListener("click", () => {
-    const dropdown = document.getElementById("profileDropdown");
-    dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
-  });
+    // Toggle dropdown
+    document.getElementById("profileIcon").addEventListener("click", () => {
+      const dropdown = document.getElementById("profileDropdown");
+      const isOpen = dropdown.classList.contains("show");
 
-  // Close dropdown when clicking outside
-  document.addEventListener("click", (e) => {
-    if (!document.getElementById("profileMenu").contains(e.target)) {
-      document.getElementById("profileDropdown").style.display = "none";
+      if (isOpen) {
+        dropdown.classList.remove("show");
+        setTimeout(() => dropdown.style.display = "none", 180);
+      } else {
+        dropdown.style.display = "block";
+        requestAnimationFrame(() => dropdown.classList.add("show"));
+      }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", (e) => {
+      const menu = document.getElementById("profileMenu");
+      const dropdown = document.getElementById("profileDropdown");
+
+      if (!menu.contains(e.target)) {
+        if (dropdown.classList.contains("show")) {
+          dropdown.classList.remove("show");
+          setTimeout(() => dropdown.style.display = "none", 180);
+        }
+      }
+    });
+
+    // Get userId
+    const userId = localStorage.getItem("userId");
+
+    // Determine API base
+    const API_BASE =
+      window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1'
+        ? 'http://127.0.0.1:5000'
+        : 'https://eaglenotes.onrender.com';
+
+    // Load user info only if logged in
+    if (userId) {
+      fetch(`${API_BASE}/user-info/${userId}`, { credentials: "include" })
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("profileName").innerText = data.username;
+          document.getElementById("profileEmail").innerText = data.email;
+        });
     }
-  });
 
-  // Get userId
-  const userId = localStorage.getItem("userId");
+    // Logout
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      fetch(`${API_BASE}/logout`, { credentials: "include" })
+        .then(() => {
+          localStorage.removeItem("userId");
+          window.location.href = "/login-page";
+        });
+    });
+  </script>
 
-  // Determine API base
-  const API_BASE =
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1'
-      ? 'http://127.0.0.1:5000'
-      : 'https://eaglenotes.onrender.com';
-
-  // Load user info only if logged in
-  if (userId) {
-    fetch(`${API_BASE}/user-info/${userId}`, { credentials: "include" })
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById("profileName").innerText = data.username;
-        document.getElementById("profileEmail").innerText = data.email;
-      });
-  }
-
-  // Logout
-  document.getElementById("logoutBtn").addEventListener("click", () => {
-    fetch(`${API_BASE}/logout`, { credentials: "include" })
-      .then(() => {
-        localStorage.removeItem("userId");
-        window.location.href = "/login-page";
-      });
-  });
-</script>
+  <script>
+    window.addEventListener("scroll", () => {
+      const header = document.querySelector("header");
+      if (window.scrollY > 20) {
+        header.classList.add("scrolled");
+      } else {
+        header.classList.remove("scrolled");
+      }
+    });
+  </script>
 
   <!-- Page Content -->
-  <main style="padding:20px;">
-    {% block content %}
-    {% endblock %}
+  <main>
+    <div class="content-wrapper">
+      {% block content %}
+      {% endblock %}
+    </div>
   </main>
 
+
+  <!-- Attribution Footer -->
+  <div id="bgCredit">
+    Photo by
+    <a href="https://unsplash.com/@pawel_czerwinski?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">
+      Pawel Czerwinski
+    </a>
+    on
+    <a
+      href="https://unsplash.com/photos/swirling-light-blue-ribbons-create-an-abstract-design-fZTKBU8OqXk?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">
+      Unsplash
+    </a>
+  </div>
+
 </body>
-
-<style>
-  #navbar {
-    width: 100%;
-    display: flex;
-    justify-content: flex-end;
-    padding: 10px 20px;
-    background: #004080;
-    box-sizing: border-box;
-  }
-
-  #profileMenu {
-    position: relative;
-  }
-
-  #profileIcon {
-    cursor: pointer;
-    font-size: 1.3em;
-    padding: 6px 10px;
-    border-radius: 6px;
-    background: white;
-    border: 1px solid #ccc;
-  }
-
-  #profileDropdown {
-    position: absolute;
-    right: 0;
-    top: 40px;
-    width: 200px;
-    background: white;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    padding: 12px;
-    display: none;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    color: black
-  }
-
-  #profileDropdown hr {
-    margin: 10px 0;
-  }
-
-  #logoutBtn {
-    width: 100%;
-    padding: 8px;
-    background: #b30000;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-  }
-
-  #logoutBtn:hover {
-    background: #800000;
-  }
-</style>
 
 </html>
