@@ -4,54 +4,52 @@
 
 <h2>Course Materials</h2>
 <table id="materialsTable">
-  <thead>
-    <tr>
-      <th class="hidden">ID</th>
-      <th>Course</th>
-      <th>Title</th>
-      <th>Type</th>
-      <th>File Path</th>
-      <th class="delete-col"></th>
-    </tr>
-  </thead>
-  <tbody></tbody>
+    <thead>
+        <tr>
+            <th class="hidden">ID</th>
+            <th>Course</th>
+            <th>Title</th>
+            <th>Type</th>
+            <th>File Path</th>
+            <th class="delete-col"></th>
+        </tr>
+    </thead>
+    <tbody></tbody>
 </table>
 
 <button id="addMaterialBtn" style="margin-top:10px;">+ Add Material</button>
 
-  <script>
-    // Automatically choose the correct backend depending on environment
-    const API_BASE = window.location.hostname === 'localhost'
-      ? '${API_BASE}'
-      : 'https://eaglenotes.onrender.com';
-
+<script>
+            if (!userId) {
+                console.error("No userId found — redirecting to login");
+                window.location.href = "/login-page";
+            }
     let courses = [];
     const tableBody = document.querySelector('#materialsTable tbody');
     const addBtn = document.getElementById('addMaterialBtn');
 
     function loadCourses() {
-    let courses = [];
-    const tableBody = document.querySelector('#materialsTable tbody');
-    const addBtn = document.getElementById('addMaterialBtn');
-
-    function loadCourses() {
-    return fetch('${API_BASE}/courses')
-        .then(res => res.json())
-        .then(data => {
-            courses = data.map(c => ({
-                id: c[0],
-                title: c[2]
-            }));
-        });
+        return fetch(`${API_BASE}/courses`, {
+            credentials: "include"
+        })
+            .then(res => res.json())
+            .then(data => {
+                courses = data.map(c => ({
+                    id: c[0],
+                    title: c[2]
+                }));
+            });
     }
 
     function loadMaterials() {
-    fetch('${API_BASE}/materials')
-        .then(res => res.json())
-        .then(data => {
-            tableBody.innerHTML = '';
-            data.forEach(m => createRow(m));
-        });
+        fetch(`${API_BASE}/materials`, {
+            credentials: "include"
+        })
+            .then(res => res.json())
+            .then(data => {
+                tableBody.innerHTML = '';
+                data.forEach(m => createRow(m));
+            });
     }
 
     function createRow(m) {
@@ -98,53 +96,54 @@
         row.querySelector('.deleteBtn').addEventListener('click', () => {
             const id = row.querySelector('td.hidden').textContent.trim();
             if (!id) return;
-            
-            fetch(`${API_BASE}/materials/${id}`, { method: 'DELETE' })
-            .then(() => row.remove());
+
+            fetch(`${API_BASE}/materials/${id}`, { method: 'DELETE', credentials: "include" })
+                .then(() => row.remove());
         });
 
         tableBody.appendChild(row);
-        
+
         if (isNew) {
             saveRow(row);
         }
-        }
+    }
 
-        function saveRow(row) {
-            const cells = row.querySelectorAll('td');
-            const id = cells[0].textContent;
+    function saveRow(row) {
+        const cells = row.querySelectorAll('td');
+        const id = cells[0].textContent;
 
-            const payload = {
-                courseId: row.querySelector('.courseSelect').value,
-                title: cells[2].textContent.trim(),
-                type: cells[3].textContent.trim(),
-                filepath: cells[4].textContent.trim()
-            };
+        const payload = {
+            courseId: row.querySelector('.courseSelect').value,
+            title: cells[2].textContent.trim(),
+            type: cells[3].textContent.trim(),
+            filepath: cells[4].textContent.trim()
+        };
 
-            const method = id ? 'PUT' : 'POST';
-            const url = id
-                ? `${API_BASE}/materials/${id}`
-                : '${API_BASE}/materials';
+        const method = id ? 'PUT' : 'POST';
+        const url = id
+            ? `${API_BASE}/materials/${id}`
+            : '${API_BASE}/materials';
 
-            fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
+        fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            credentials: "include",
+            body: JSON.stringify(payload)
+        })
             .then(res => res.json())
             .then(data => {
                 if (!id && data.materialId) {
-                cells[0].textContent = data.materialId;
+                    cells[0].textContent = data.materialId;
                 }
             });
-        }
-    
-        addBtn.addEventListener('click', () => {
-            createRow(['', '', '', '', '']);
-        });
+    }
+
+    addBtn.addEventListener('click', () => {
+        createRow(['', '', '', '', '']);
+    });
 
     loadCourses().then(loadMaterials);
-  </script>
+</script>
 
 <style>
     .delete-col {
@@ -179,7 +178,7 @@
     }
 
     .hidden {
-         display: none;
+        display: none;
     }
 
     #materialsTable th.hidden,
@@ -189,13 +188,15 @@
 
     #materialsTable td:nth-child(2),
     #materialsTable th:nth-child(2) {
-        width: 150px;   /* adjust as needed */
+        width: 150px;
+        /* adjust as needed */
         max-width: 150px;
     }
 
     #materialsTable td:nth-child(3),
     #materialsTable th:nth-child(3) {
-        width: 300px;   /* or 350px */
+        width: 300px;
+        /* or 350px */
     }
 
     #materialsTable {
@@ -203,7 +204,8 @@
         width: 100%;
     }
 
-    td, th {
+    td,
+    th {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;

@@ -75,15 +75,17 @@
         <div style="text-align:center; margin-top:12px;">
             <a href="/login-page">Already have an account?</a>
         </div>
-        
+
         <div id="errorMsg">Passwords do not match</div>
     </div>
 
     <script>
+
         // Automatically choose the correct backend depending on environment
-        const API_BASE = window.location.hostname === 'localhost'
-          ? 'http://127.0.0.1:5000'
-          : 'https://eaglenotes.onrender.com';
+        const API_BASE = window.location.hostname === 'localhost' ||
+            window.location.hostname === '127.0.0.1'
+            ? 'http://127.0.0.1:5000'
+            : 'https://eaglenotes.onrender.com';
 
         document.getElementById("registerBtn").addEventListener("click", () => {
             const username = document.getElementById("username").value.trim();
@@ -102,6 +104,7 @@
             fetch(`${API_BASE}/register`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify(payload)
             })
                 .then(res => res.json())

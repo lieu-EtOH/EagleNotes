@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, redirect, request, render_template
+from flask import Flask, jsonify, redirect, request, render_template, session
 from flask_login import (
     LoginManager,
     UserMixin,
@@ -15,7 +15,7 @@ import os
 
 load_dotenv()
 app = Flask(__name__)
-CORS(app)
+CORS(app, supports_credentials=True)
 app.secret_key = os.getenv("SECRET_KEY")
 
 login_manager = LoginManager()
@@ -40,7 +40,7 @@ def load_user(user_id):
     conn.close()
 
     if row:
-        return User(*row)
+        return User(row[0], row[1], row[2], row[3])
     return None        
 
 # Registration Endpoint
@@ -77,18 +77,25 @@ def login():
         'SELECT userId, username, email, passwordHash FROM "User" WHERE username=%s OR email=%s;',
         (username_or_email, username_or_email)
     )
-    user = cur.fetchone()
+    row = cur.fetchone()
     cur.close()
     conn.close()
 
-    if not user:
-        return jsonify({'error': 'No account found with that username or email'}), 401
+    if row is None:
+        return jsonify({"error": "Invalid email or password"}), 401
 
-    if not check_password_hash(user[3], password):
+    user = User(row[0], row[1], row[2], row[3])
+
+    if not check_password_hash(user.passwordHash, password):
         return jsonify({'error': 'Incorrect password'}), 401
 
-    login_user(User(*user))
-    return jsonify({'message': 'Login successful', 'userId': user[0]})
+    login_user(user)
+    session['user_id'] = user.id
+    return jsonify({
+    'message': 'Login successful',
+    'userId': user.id
+})
+
 
 # Unauthorized handler for Flask-Login
 @login_manager.unauthorized_handler

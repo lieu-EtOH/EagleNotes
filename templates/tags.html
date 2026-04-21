@@ -18,13 +18,13 @@
 
 
 <script>
-    // Automatically choose the correct backend depending on environment
-    const API_BASE = window.location.hostname === 'localhost'
-      ? '${API_BASE}'
-      : 'https://eaglenotes.onrender.com';
-
-    fetch(${API_BASE}/tags)
-    fetch('${API_BASE}/tags')
+            if (!userId) {
+                console.error("No userId found — redirecting to login");
+                window.location.href = "/login-page";
+            }
+    fetch(`${API_BASE}/tags`, {
+        credentials: "include"
+    })
         .then(res => res.json())
         .then(data => {
             const tbody = document.querySelector('#tagsTable tbody');
@@ -32,7 +32,9 @@
             const addBtn = document.getElementById('addTagBtn');
 
             function loadTags() {
-                fetch('${API_BASE}/tags')
+                fetch(`${API_BASE}/tags`, {
+                    credentials: "include"
+                })
                     .then(res => res.json())
                     .then(data => {
                         tableBody.innerHTML = '';
@@ -77,7 +79,7 @@
                     const id = row.querySelector('td.hidden').textContent.trim();
                     if (!id) return;
 
-                    fetch(`${API_BASE}/tags/${id}`, { method: 'DELETE' })
+                    fetch(`${API_BASE}/tags/${id}`, { method: 'DELETE', credentials: "include" })
                         .then(() => row.remove());
                 });
 
@@ -99,11 +101,12 @@
                 const method = id ? 'PUT' : 'POST';
                 const url = id
                     ? `${API_BASE}/tags/${id}`
-                    : '${API_BASE}/tags';
+                    : `${API_BASE}/tags`;
 
                 fetch(url, {
                     method,
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: "include",
                     body: JSON.stringify(payload)
                 })
                     .then(res => res.json())

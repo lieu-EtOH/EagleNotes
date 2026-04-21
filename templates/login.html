@@ -92,9 +92,10 @@
 
     <script>
         // Automatically choose the correct backend depending on environment
-        const API_BASE = window.location.hostname === 'localhost'
-          ? 'http://127.0.0.1:5000'
-          : 'https://eaglenotes.onrender.com';
+        const API_BASE = window.location.hostname === 'localhost' ||
+            window.location.hostname === '127.0.0.1'
+            ? 'http://127.0.0.1:5000'
+            : 'https://eaglenotes.onrender.com';
 
         document.getElementById("loginBtn").addEventListener("click", () => {
             const payload = {
@@ -105,6 +106,7 @@
             fetch(`${API_BASE}/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify(payload)
             })
                 .then(res => res.json())

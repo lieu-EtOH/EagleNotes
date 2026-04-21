@@ -20,37 +20,35 @@
 <button id="addCourseBtn" style="margin-top:10px;">+ Add Course</button>
 
 <script>
-const tableBody = document.querySelector('#coursesTable tbody');
-const addBtn = document.getElementById('addCourseBtn');
+  if (!userId) {
+    console.error("No userId found — redirecting to login");
+    window.location.href = "/login-page";
+  }
+  const tableBody = document.querySelector('#coursesTable tbody');
+  const addBtn = document.getElementById('addCourseBtn');
 
-// Automatically choose the correct backend depending on environment
-const API_BASE = window.location.hostname === 'localhost'
-  ? '${API_BASE}'
-  : 'https://eaglenotes.onrender.com';
+  // Load existing courses
+  function loadCourses() {
+    fetch(`${API_BASE}/courses`, {
+      credentials: "include"
+    })
 
-// Load existing courses
-const tableBody = document.querySelector('#coursesTable tbody');
-const addBtn = document.getElementById('addCourseBtn');
+      .then(res => res.json())
+      .then(data => {
+        tableBody.innerHTML = '';
+        data.forEach(c => createRow(c));
+      });
+  }
 
-// Load existing courses
-function loadCourses() {
-  fetch('${API_BASE}/courses')
-    .then(res => res.json())
-    .then(data => {
-      tableBody.innerHTML = '';
-      data.forEach(c => createRow(c));
-    });
-}
+  // Create editable row
+  function createRow(c) {
+    const row = document.createElement('tr');
+    const isNew = !c[0];
+    const titleValue = c[2] || (isNew ? '' : '');
+    const instructorValue = c[3] || '';
+    const termValue = c[4] || '';
 
-// Create editable row
-function createRow(c) {
-  const row = document.createElement('tr');
-  const isNew = !c[0];
-  const titleValue = c[2] || (isNew ? '' : '');
-  const instructorValue = c[3] || '';
-  const termValue = c[4] || '';
-
-  row.innerHTML = `
+    row.innerHTML = `
     <td class="hidden">${c[0] || ''}</td>
     <td contenteditable="true">${titleValue}</td>
     <td contenteditable="true">${instructorValue}</td>
@@ -62,85 +60,92 @@ function createRow(c) {
     </td>
   `;
 
-  // Auto-save on blur
-  row.querySelectorAll('[contenteditable="true"]').forEach(cell => {
-    cell.addEventListener('blur', () => saveRow(row));
-  });
+    // Auto-save on blur
+    row.querySelectorAll('[contenteditable="true"]').forEach(cell => {
+      cell.addEventListener('blur', () => saveRow(row));
+    });
 
-  // Delete button
-  row.querySelector('.deleteBtn').addEventListener('click', () => {
-    const id = row.querySelector('td').textContent;
-    if (!id) return;
+    // Delete button
+    row.querySelector('.deleteBtn').addEventListener('click', () => {
+      const id = row.querySelector('td').textContent;
+      if (!id) return;
 
-    fetch(`${API_BASE}/courses/${id}`, { method: 'DELETE' })
+      fetch(`${API_BASE}/courses/${id}`, { method: 'DELETE', credentials: "include" })
+        .then(res => {
+          if (!res.ok) throw new Error('Delete failed');
+          return res.json();
+        })
+        .then(() => loadCourses())
+        .catch(err => {
+          console.error('Delete failed:', err);
+          alert('Failed to delete course. Please try again.');
+        });
+    });
+
+    tableBody.appendChild(row);
+
+    if (isNew) {
+      saveRow(row);
+    }
+  }
+
+  // Save row (auto-save)
+  function saveRow(row) {
+    const cells = row.querySelectorAll('td');
+    const id = cells[0].textContent;
+
+    const payload = {
+      title: cells[1].textContent.trim(),
+      instructor: cells[2].textContent.trim(),
+      term: cells[3].textContent.trim()
+    };
+
+    const method = id ? 'PUT' : 'POST';
+    const url = id
+      ? `${API_BASE}/courses/${id}`
+      : `${API_BASE}/courses`;
+
+
+    fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      credentials: "include",
+      body: JSON.stringify(payload)
+    })
       .then(res => {
-        if (!res.ok) throw new Error('Delete failed');
+        if (!res.ok) throw new Error('Save failed');
         return res.json();
       })
       .then(() => loadCourses())
       .catch(err => {
-        console.error('Delete failed:', err);
-        alert('Failed to delete course. Please try again.');
+        console.error('Save failed:', err);
+        alert('Failed to save course. Please try again.');
       });
-  });
-
-  tableBody.appendChild(row);
-
-  if (isNew) {
-    saveRow(row);
   }
-}
 
-// Save row (auto-save)
-function saveRow(row) {
-  const cells = row.querySelectorAll('td');
-  const id = cells[0].textContent;
-
-  const payload = {
-    title: cells[1].textContent.trim(),
-    instructor: cells[2].textContent.trim(),
-    term: cells[3].textContent.trim()
-  };
-
-  const method = id ? 'PUT' : 'POST';
-  const url = id
-    ? `${API_BASE}/courses/${id}`
-    : '${API_BASE}/courses';
-
-  fetch(url, {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  })
-  .then(res => {
-    if (!res.ok) throw new Error('Save failed');
-    return res.json();
-  })
-  .then(() => loadCourses())
-  .catch(err => {
-    console.error('Save failed:', err);
-    alert('Failed to save course. Please try again.');
+  // Add new blank row
+  addBtn.addEventListener('click', () => {
+    createRow(['', '', '', '']);
   });
-}
 
-// Add new blank row
-addBtn.addEventListener('click', () => {
-  createRow(['', '', '', '']);
-});
-
-loadCourses();
+  loadCourses();
 </script>
 
 <style>
-  .hidden { display:none; }
+  .hidden {
+    display: none;
+  }
 
   /* Visible table grid */
-  table, th, td {
+  table,
+  th,
+  td {
     border: 1px solid #ccc;
     border-collapse: collapse;
   }
 
-  th, td {
+  th,
+  td {
     padding: 8px;
   }
 

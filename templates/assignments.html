@@ -69,11 +69,6 @@
 <button id="addAssignmentBtn" style="margin-top:10px;">+ Add Assignment</button>
 
 <script>
-    // Automatically choose the correct backend depending on environment
-    const API_BASE = window.location.hostname === 'localhost'
-      ? '${API_BASE}'
-      : 'https://eaglenotes.onrender.com';
-
     let allAssignments = []; // store all assignments for filtering/sorting
     let courses = []; // store all courses for dropdown
     const tableBody = document.querySelector('#assignmentsTable tbody');
@@ -81,11 +76,14 @@
     const STATUS_OPTIONS = ["Not Started", "In Progress", "Completed"];
     const DIFFICULTY_OPTIONS = ["1", "2", "3", "4", "5"];
     const HOURS_OPTIONS = ["< 1", "1 - 2", "2+"];
-
+    if (!userId) {
+        console.error("No userId found — redirecting to login");
+        window.location.href = "/login-page";
+    }
 
     // Load courses first
     function loadCourses() {
-        return fetch(`${API_BASE}/courses`)
+        return fetch(`${API_BASE}/courses`, { credentials: "include" })
             .then(res => res.json())
             .then(data => {
                 courses = data.map(c => ({
@@ -101,7 +99,7 @@
 
     // Load assignments
     function loadAssignments() {
-        fetch(`${API_BASE}/assignments`)
+        fetch(`${API_BASE}/assignments`, { credentials: "include" })
             .then(res => res.json())
             .then(data => {
                 allAssignments = data;   // store raw data
@@ -235,7 +233,10 @@
         const assignmentId = a[0] || '';
         const courseId = a[1] || '';
         const courseTitle = a[2] || '';
-        const dueDateValue = determineDueDateValue(a[5]);
+        const dueDateValue = typeof determineDueDateValue === "function"
+            ? determineDueDateValue(a[5])
+            : "";
+
         const selectedHoursLabel = hoursLabelFromValue(a[8]) || '1 - 2';
         const titleValue = a[3] || (isNew ? '' : '');
         const descriptionValue = a[4] || '';
@@ -315,7 +316,7 @@
             const currentId = row.querySelector('td.hidden').textContent;
             if (!currentId) return;
 
-            fetch(`${API_BASE}/assignments/${currentId}`, { method: 'DELETE' })
+            fetch(`${API_BASE}/assignments/${currentId}`, { method: 'DELETE', credentials: "include" })
                 .then(res => {
                     if (!res.ok) throw new Error('Delete failed');
                     return res.json();
@@ -330,8 +331,13 @@
         });
 
         row.querySelector('.addTagBtn').addEventListener('click', () => {
+            if (!assignmentId) {
+                alert("Save the assignment before adding tags.");
+                return;
+            }
             openTagSelector(row, assignmentId);
         });
+
 
 
         tableBody.appendChild(row);
@@ -368,12 +374,13 @@
         const method = id ? 'PUT' : 'POST';
         const url = id
             ? `${API_BASE}/assignments/${id}`
-            : '${API_BASE}/assignments';
+            : `${API_BASE}/assignments`;
 
         fetch(url, {
             method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            credentials: "include",
+            body: JSON.stringify(payload)            
         })
             .then(res => {
                 if (!res.ok) throw new Error('Save failed');
@@ -394,7 +401,7 @@
             });
     }
     function openTagSelector(row, assignmentId) {
-        fetch('${API_BASE}/tags')
+        fetch(`${API_BASE}/tags`, { credentials: "include" })
             .then(res => res.json())
             .then(tags => {
                 const menu = document.createElement('div');
@@ -417,7 +424,8 @@
                         fetch(`${API_BASE}/assignments/${assignmentId}/tags`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ tagId })
+                            body: JSON.stringify({ tagId }),
+                            credentials: "include"
                         })
                             .then(() => {
                                 menu.remove();

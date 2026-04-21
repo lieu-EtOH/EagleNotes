@@ -34,47 +34,48 @@
   </header>
 
   <script>
-    // Toggle dropdown
-    document.getElementById("profileIcon").addEventListener("click", () => {
-      const dropdown = document.getElementById("profileDropdown");
-      dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
-    });
+  // Toggle dropdown
+  document.getElementById("profileIcon").addEventListener("click", () => {
+    const dropdown = document.getElementById("profileDropdown");
+    dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+  });
 
-    // Close dropdown when clicking outside
-    document.addEventListener("click", (e) => {
-      if (!document.getElementById("profileMenu").contains(e.target)) {
-        document.getElementById("profileDropdown").style.display = "none";
-      }
-    });
+  // Close dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!document.getElementById("profileMenu").contains(e.target)) {
+      document.getElementById("profileDropdown").style.display = "none";
+    }
+  });
 
-    // Automatically choose the correct backend depending on environment
-    const API_BASE = window.location.hostname === 'localhost'
+  // Get userId
+  const userId = localStorage.getItem("userId");
+
+  // Determine API base
+  const API_BASE =
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1'
       ? 'http://127.0.0.1:5000'
       : 'https://eaglenotes.onrender.com';
 
-    // Load user info from localStorage
-    const userId = localStorage.getItem("userId");
+  // Load user info only if logged in
+  if (userId) {
+    fetch(`${API_BASE}/user-info/${userId}`, { credentials: "include" })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("profileName").innerText = data.username;
+        document.getElementById("profileEmail").innerText = data.email;
+      });
+  }
 
-    if (!userId) {
-      window.location.href = "/login-page";
-    } else {
-      fetch(`${API_BASE}/user-info/${userId}`)
-        .then(res => res.json())
-        .then(data => {
-          document.getElementById("profileName").innerText = data.username;
-          document.getElementById("profileEmail").innerText = data.email;
-        });
-    }
-
-    // Logout
-    document.getElementById("logoutBtn").addEventListener("click", () => {
-      fetch(`${API_BASE}/logout`)
-        .then(() => {
-          localStorage.removeItem("userId");
-          window.location.href = "/login-page";
-        });
-    });
-  </script>
+  // Logout
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    fetch(`${API_BASE}/logout`, { credentials: "include" })
+      .then(() => {
+        localStorage.removeItem("userId");
+        window.location.href = "/login-page";
+      });
+  });
+</script>
 
   <!-- Page Content -->
   <main style="padding:20px;">
